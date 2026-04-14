@@ -11,7 +11,5 @@
 void decode_instruction(const CPUState *cpu, uint32_t raw,
                         uint32_t pc, DecodedInstr *d);
 
-/* 디버그용: 디코딩 결과를 사람이 읽기 좋은 형태로 출력 */
-void decode_print(const DecodedInstr *d);
 
 #endif /* DECODE_H */

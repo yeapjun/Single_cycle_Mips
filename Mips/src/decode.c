@@ -182,34 +182,3 @@ void decode_instruction(const CPUState *cpu, uint32_t raw,
     }
 }
 
-/* ----------------------------------------------------------
- *  decode_print: 사람이 읽기 좋은 디코딩 정보 출력 (디버그용)
- * ---------------------------------------------------------- */
-void decode_print(const DecodedInstr *d)
-{
-    static const char *reg_names[NUM_REGS] = {
-        "$zero","$at","$v0","$v1","$a0","$a1","$a2","$a3",
-        "$t0","$t1","$t2","$t3","$t4","$t5","$t6","$t7",
-        "$s0","$s1","$s2","$s3","$s4","$s5","$s6","$s7",
-        "$t8","$t9","$k0","$k1","$gp","$sp","$fp","$ra"
-    };
-
-    const char *type_str[] = {"R","I","J","UNKNOWN"};
-    printf("  [DECODE] PC=0x%08X  RAW=0x%08X  TYPE=%s\n",
-           d->pc, d->raw, type_str[d->type]);
-
-    if (d->type == ITYPE_R) {
-        printf("           op=0x%02X rs=%s rt=%s rd=%s shamt=%u funct=0x%02X\n",
-               d->opcode,
-               reg_names[d->rs], reg_names[d->rt], reg_names[d->rd],
-               d->shamt, d->funct);
-    } else if (d->type == ITYPE_I) {
-        printf("           op=0x%02X rs=%s rt=%s imm=%d(0x%04X)\n",
-               d->opcode,
-               reg_names[d->rs], reg_names[d->rt],
-               d->imm, (uint16_t)d->imm);
-    } else {
-        printf("           op=0x%02X target=0x%07X\n",
-               d->opcode, d->target);
-    }
-}

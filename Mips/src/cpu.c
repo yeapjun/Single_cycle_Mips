@@ -204,7 +204,7 @@ static uint32_t stage_mem(CPUState *cpu, const DecodedInstr *d,
  * ================================================================ */
 static void stage_wb(CPUState *cpu, const DecodedInstr *d,
                      uint32_t alu_result, uint32_t mem_data,
-                     uint32_t next_pc, int verbose)
+                     uint32_t next_pc)
 {
     /* ---- 변경 상태 추적을 위해 이전 값 저장 ---- */
     uint32_t prev_reg[NUM_REGS];
@@ -277,53 +277,48 @@ static void stage_wb(CPUState *cpu, const DecodedInstr *d,
     /* ---- PC 업데이트 ---- */
     cpu->pc = next_pc;
 
-    /* ---- Changed Architectural State 출력 ---- */
-    if (verbose) {
-        int changed = 0;
-        /* PC 변화 */
-        if (prev_pc != cpu->pc) {
-            if (!changed) {
-                printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
-                changed = 1;
-            }
-            printf("  PC: 0x%08X -> 0x%08X\n", prev_pc, cpu->pc);
-        }
-        /* 레지스터 변화 */
-        for (int i = 1; i < NUM_REGS; i++) {
-            if (prev_reg[i] != cpu->reg[i]) {
-                if (!changed) {
-                    printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
-                    changed = 1;
-                }
-                printf("  %s (r%d): 0x%08X -> 0x%08X\n",
-                       reg_name[i], i, prev_reg[i], cpu->reg[i]);
-            }
-        }
-        /* 메모리 변화 (Store 명령어 시) */
-        if (d->mem_write) {
-            uint32_t addr = alu_result;
-            if (!changed) {
-                printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
-                changed = 1;
-            }
-            switch ((Opcode)d->opcode) {
-            case OP_SW:
-                printf("  MEM[0x%08X]: 0x%08X\n", addr, d->rt_val);
-                break;
-            case OP_SH:
-                printf("  MEM[0x%08X]: 0x%04X (half)\n", addr,
-                       (uint16_t)(d->rt_val & 0xFFFF));
-                break;
-            case OP_SB:
-                printf("  MEM[0x%08X]: 0x%02X (byte)\n", addr,
-                       (uint8_t)(d->rt_val & 0xFF));
-                break;
-            default:
-                break;
-            }
-        }
+    /* ---- Changed Architectural State 출력 (매 사이클) ---- */
+    int changed = 0;
+    /* PC 변화 */
+    if (prev_pc != cpu->pc) {
         if (!changed) {
-            /* NOP 등 변화 없는 사이클은 출력 생략 */
+            printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
+            changed = 1;
+        }
+        printf("  PC: 0x%08X -> 0x%08X\n", prev_pc, cpu->pc);
+    }
+    /* 레지스터 변화 */
+    for (int i = 1; i < NUM_REGS; i++) {
+        if (prev_reg[i] != cpu->reg[i]) {
+            if (!changed) {
+                printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
+                changed = 1;
+            }
+            printf("  %s (r%d): 0x%08X -> 0x%08X\n",
+                   reg_name[i], i, prev_reg[i], cpu->reg[i]);
+        }
+    }
+    /* 메모리 변화 (Store 명령어 시) */
+    if (d->mem_write) {
+        uint32_t addr = alu_result;
+        if (!changed) {
+            printf("[Cycle PC=0x%08X] Changed state:\n", prev_pc);
+            changed = 1;
+        }
+        switch ((Opcode)d->opcode) {
+        case OP_SW:
+            printf("  MEM[0x%08X]: 0x%08X\n", addr, d->rt_val);
+            break;
+        case OP_SH:
+            printf("  MEM[0x%08X]: 0x%04X (half)\n", addr,
+                   (uint16_t)(d->rt_val & 0xFFFF));
+            break;
+        case OP_SB:
+            printf("  MEM[0x%08X]: 0x%02X (byte)\n", addr,
+                   (uint8_t)(d->rt_val & 0xFF));
+            break;
+        default:
+            break;
         }
     }
 }
@@ -331,7 +326,7 @@ static void stage_wb(CPUState *cpu, const DecodedInstr *d,
 /* ================================================================
  *  cpu_run: 메인 실행 루프
  * ================================================================ */
-void cpu_run(CPUState *cpu, int verbose)
+void cpu_run(CPUState *cpu)
 {
     ExecStats stats;
     memset(&stats, 0, sizeof(stats));
@@ -369,7 +364,7 @@ void cpu_run(CPUState *cpu, int verbose)
         uint32_t mem_data = stage_mem(cpu, &d, alu_result, &stats);
 
         /* ---- 5. Write Back --------------------------------------- */
-        stage_wb(cpu, &d, alu_result, mem_data, next_pc, verbose);
+        stage_wb(cpu, &d, alu_result, mem_data, next_pc);
     }
 
     /* 종료 통계 출력 */
