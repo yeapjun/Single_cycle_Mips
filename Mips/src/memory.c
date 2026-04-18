@@ -1,15 +1,11 @@
 #include "memory.h"
 
-/* ----------------------------------------------------------
- *  메모리 초기화 / 해제
- * ---------------------------------------------------------- */
 void mem_init(CPUState *cpu)
 {
     cpu->mem_size = MEM_SIZE;
     cpu->mem = (uint8_t *)calloc(MEM_SIZE, sizeof(uint8_t));
     if (!cpu->mem) {
-        fprintf(stderr, "[ERROR] Failed to allocate %u bytes for memory.\n",
-                MEM_SIZE);
+        fprintf(stderr, "[ERROR] Failed to allocate %u bytes for memory.\n", MEM_SIZE);
         exit(EXIT_FAILURE);
     }
 }
@@ -20,10 +16,6 @@ void mem_free(CPUState *cpu)
     cpu->mem = NULL;
 }
 
-/* ----------------------------------------------------------
- *  바이너리 파일 로드
- *  - 파일 전체를 메모리 LOAD_ADDR(0x0) 부터 적재
- * ---------------------------------------------------------- */
 int mem_load_binary(CPUState *cpu, const char *filename)
 {
     FILE *fp = fopen(filename, "rb");
@@ -51,34 +43,23 @@ int mem_load_binary(CPUState *cpu, const char *filename)
     fclose(fp);
 
     if ((long)read_bytes != fsize) {
-        fprintf(stderr, "[ERROR] Partial read: %zu / %ld bytes.\n",
-                read_bytes, fsize);
+        fprintf(stderr, "[ERROR] Partial read: %zu / %ld bytes.\n", read_bytes, fsize);
         return -1;
     }
 
-    printf("[INFO] Loaded %ld bytes from \"%s\" at 0x%08X.\n",
-           fsize, filename, LOAD_ADDR);
+    printf("[INFO] Loaded %ld bytes from \"%s\" at 0x%08X.\n", fsize, filename, LOAD_ADDR);
     return 0;
 }
 
-/* ----------------------------------------------------------
- *  주소 유효성 검사 헬퍼 (내부 사용)
- * ---------------------------------------------------------- */
-static void check_addr(const CPUState *cpu, uint32_t addr, uint32_t width,
-                       const char *op)
+static void check_addr(const CPUState *cpu, uint32_t addr, uint32_t width, const char *op)
 {
     if (addr + width > cpu->mem_size) {
-        fprintf(stderr,
-                "[ERROR] Memory %s out of bounds: addr=0x%08X width=%u "
-                "(mem_size=0x%08X)\n",
+        fprintf(stderr, "[ERROR] Memory %s out of bounds: addr=0x%08X width=%u (mem_size=0x%08X)\n",
                 op, addr, width, cpu->mem_size);
         exit(EXIT_FAILURE);
     }
 }
 
-/* ----------------------------------------------------------
- *  읽기 — Big-endian MIPS
- * ---------------------------------------------------------- */
 uint8_t mem_read_byte(const CPUState *cpu, uint32_t addr)
 {
     check_addr(cpu, addr, 1, "read");
@@ -88,8 +69,7 @@ uint8_t mem_read_byte(const CPUState *cpu, uint32_t addr)
 uint16_t mem_read_half(const CPUState *cpu, uint32_t addr)
 {
     check_addr(cpu, addr, 2, "read");
-    return (uint16_t)((cpu->mem[addr]     << 8) |
-                       cpu->mem[addr + 1]);
+    return (uint16_t)((cpu->mem[addr] << 8) | cpu->mem[addr + 1]);
 }
 
 uint32_t mem_read_word(const CPUState *cpu, uint32_t addr)
@@ -101,9 +81,6 @@ uint32_t mem_read_word(const CPUState *cpu, uint32_t addr)
             (uint32_t)cpu->mem[addr + 3];
 }
 
-/* ----------------------------------------------------------
- *  쓰기 — Big-endian MIPS
- * ---------------------------------------------------------- */
 void mem_write_byte(CPUState *cpu, uint32_t addr, uint8_t val)
 {
     check_addr(cpu, addr, 1, "write");
